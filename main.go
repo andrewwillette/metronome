@@ -28,11 +28,11 @@ func (metronomeLayout *metronomeLayout) MinSize(_ []fyne.CanvasObject) fyne.Size
     return fyne.NewSize(200, 200)
 }
 
-func (metronomeLayout *metronomeLayout) animate(co fyne.CanvasObject) {
-	tick := time.NewTicker(time.Second)
+func (metronomeLayout *metronomeLayout) animate(canvasObject fyne.CanvasObject) {
+	tick := time.NewTicker(time.Millisecond)
 	go func() {
 		for !metronomeLayout.stop {
-			metronomeLayout.Layout(nil, co.Size())
+			metronomeLayout.Layout(nil, canvasObject.Size())
 			canvas.Refresh(metronomeLayout.canvas)
 			<-tick.C
 		}
