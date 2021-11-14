@@ -1,83 +1,163 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+	"strings"
 	"time"
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/theme"
+
+	"github.com/jroimartin/gocui"
 )
 
-type metronomeLayout struct {
-    beatBlinker *canvas.Circle
-    canvas fyne.CanvasObject
-    stop bool
+// write log to file
+func configureLog() {
+    f, err := os.OpenFile("metronome.log", os.O_APPEND | os.O_CREATE | os.O_RDWR, 0666)
+    if err != nil {
+        fmt.Printf("error opening file: %v", err)
+    }
+    log.SetOutput(f)
 }
 
-func (metronomeLayout *metronomeLayout) Layout(_ []fyne.CanvasObject, size fyne.Size) {
-    diameter := fyne.Min(size.Width, size.Height)
-    radius := diameter / 2
-    size = fyne.NewSize(diameter, diameter)
-    middle := fyne.NewPos(size.Width/2, size.Height/2)
-    topleft := fyne.NewPos(middle.X-radius, middle.Y-radius)
-    metronomeLayout.beatBlinker.Resize(size)
-    metronomeLayout.beatBlinker.Move(topleft)
+func metronome(BeatsPerMinute int) {
+    milliseconds := 60000 / BeatsPerMinute
+    for range time.Tick(time.Millisecond * time.Duration(milliseconds)) {
+        fmt.Println("Tick")
+    }
 }
 
-func (metronomeLayout *metronomeLayout) MinSize(_ []fyne.CanvasObject) fyne.Size {
-    return fyne.NewSize(200, 200)
+type Label struct {
+	name string
+	x, y int
+	w, h int
+	body string
 }
 
-func (metronomeLayout *metronomeLayout) animate(canvasObject fyne.CanvasObject) {
-	tick := time.NewTicker(time.Millisecond)
-	go func() {
-		for !metronomeLayout.stop {
-			metronomeLayout.Layout(nil, canvasObject.Size())
-			canvas.Refresh(metronomeLayout.canvas)
-			<-tick.C
+func NewLabel(name string, x, y int, body string) *Label {
+	lines := strings.Split(body, "\n")
+
+	w := 0
+	for _, l := range lines {
+		if len(l) > w {
+			w = len(l)
 		}
-	}()
+	}
+	h := len(lines) + 1
+	w = w + 1
+
+	return &Label{name: name, x: x, y: y, w: w, h: h, body: body}
 }
 
-func (metronome *metronomeLayout) render() *fyne.Container {
-    metronome.beatBlinker = &canvas.Circle{StrokeColor: theme.TextColor(), StrokeWidth: 5}
-    container := fyne.NewContainer(metronome.beatBlinker)
-    container.Layout = metronome
-    metronome.canvas = container
-    return container
+func (l *Label) Layout(g *gocui.Gui) error {
+	v, err := g.SetView(l.name, l.x, l.y, l.x+l.w, l.y+l.h)
+	if err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Frame = false
+		fmt.Fprint(v, l.body)
+	}
+	return nil
 }
 
-func (metronomeLayout *metronomeLayout) applyTheme (_ fyne.Settings) {
-    metronomeLayout.beatBlinker.StrokeColor = theme.PrimaryColor()
+type Input struct {
+	name      string
+	x, y      int
+	w         int
+	maxLength int
 }
 
-func ShowMetronome(win fyne.Window) fyne.CanvasObject {
-    metronome := &metronomeLayout{}
-	content := metronome.render()
-    go metronome.animate(content)
-    listener := make(chan fyne.Settings)
-    fyne.CurrentApp().Settings().AddChangeListener(listener)
-    go func() {
-        for {
-            settings := <-listener
-            metronome.applyTheme(settings)
+func NewInput(name string, x, y, w, maxLength int) *Input {
+	return &Input{name: name, x: x, y: y, w: w, maxLength: maxLength}
+}
+
+func (i *Input) Layout(g *gocui.Gui) error {
+	v, err := g.SetView(i.name, i.x, i.y, i.x+i.w, i.y+2)
+	if err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Editor = i
+		v.Editable = true
+	}
+	return nil
+}
+
+func (i *Input) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+	cx, _ := v.Cursor()
+	ox, _ := v.Origin()
+	limit := ox+cx+1 > i.maxLength
+	switch {
+	case ch != 0 && mod == 0 && !limit:
+		v.EditWrite(ch)
+	case key == gocui.KeySpace && !limit:
+		v.EditWrite(' ')
+	case key == gocui.KeyBackspace || key == gocui.KeyBackspace2:
+		v.EditDelete(true)
+	}
+}
+
+func layout(g *gocui.Gui) error {
+	//maxX, maxY := g.Size()
+	//if v, err := g.SetView("hello", maxX/2-7, maxY/2, maxX/2+7, maxY/2+2); err != nil {
+		//if err != gocui.ErrUnknownView {
+			//return err
+		//}
+
+		//fmt.Fprintln(v, "Hello world!")
+	//}
+    if v, err := g.SetView("stdin", 0, 0, 80, 35); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		if _, err := g.SetCurrentView("stdin"); err != nil {
+			return err
         }
-    }()
-    return content
+        fmt.Fprintln(v, "this garbage works lmao")
+        fmt.Fprintln(v, "alright alright")
+		v.Wrap = true
+	}
+	return nil
 }
 
-func GetApplicationTitle() string {
-    return "Metronome"
+func SetFocus(name string) func(g *gocui.Gui) error {
+	return func(g *gocui.Gui) error {
+		_, err := g.SetCurrentView(name)
+		return err
+	}
 }
 
-func GetSize() fyne.Size {
-    return fyne.NewSize(float32(60), float32(60))
+func quit(g *gocui.Gui, v *gocui.View) error {
+	return gocui.ErrQuit
+}
+
+func startApp() {
+    //var beatsPerMinute int
+    //_, err := fmt.Scan(&beatsPerMinute)
+    //if err != nil {
+        //log.Fatal("failed to scan bpm", err)
+    //}
+    g, err := gocui.NewGui(gocui.OutputNormal)
+	if err != nil {
+		log.Panicln(err)
+	}
+	defer g.Close()
+    g.Cursor = true
+    label := NewLabel("bitchlabel\nand tits", 1, 1, "bitchShit")
+    input := NewInput("bitchInput", 7, 1, 40, 40)
+    focus := gocui.ManagerFunc(SetFocus("bitchInput"))
+    g.SetManager(label, input, focus)
+	//g.SetManagerFunc(layout)
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+		log.Panicln(err)
+	}
+	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+		log.Panicln(err)
+	}
 }
 
 func main() {
-	a := app.New()
-	w := a.NewWindow(GetApplicationTitle())
-    w.SetContent(ShowMetronome(w))
-    w.Resize(fyne.NewSize(480, 360))
-    w.ShowAndRun()
+    configureLog()
+    log.Println("gets this")
+    startApp()
 }
