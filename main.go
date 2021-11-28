@@ -49,6 +49,7 @@ func NewLabel(name string, x, y int, body string) *Label {
 }
 
 func (l *Label) Layout(g *gocui.Gui) error {
+    log.Printf("calling input.Layout")
 	v, err := g.SetView(l.name, l.x, l.y, l.x+l.w, l.y+l.h)
 	if err != nil {
 		if err != gocui.ErrUnknownView {
@@ -62,9 +63,7 @@ func (l *Label) Layout(g *gocui.Gui) error {
 
 type Input struct {
 	name      string
-	x, y      int
-	w         int
-	maxLength int
+	x, y, w, maxLength int
 }
 
 func NewInput(name string, x, y, w, maxLength int) *Input {
@@ -72,6 +71,7 @@ func NewInput(name string, x, y, w, maxLength int) *Input {
 }
 
 func (i *Input) Layout(g *gocui.Gui) error {
+    log.Printf("calling input.Layout with Input:  %v\n", *i)
 	v, err := g.SetView(i.name, i.x, i.y, i.x+i.w, i.y+2)
 	if err != nil {
 		if err != gocui.ErrUnknownView {
@@ -84,6 +84,7 @@ func (i *Input) Layout(g *gocui.Gui) error {
 }
 
 func (i *Input) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+    log.Printf("editing swag\n")
 	cx, _ := v.Cursor()
 	ox, _ := v.Origin()
 	limit := ox+cx+1 > i.maxLength
@@ -113,8 +114,8 @@ func layout(g *gocui.Gui) error {
 		if _, err := g.SetCurrentView("stdin"); err != nil {
 			return err
         }
-        fmt.Fprintln(v, "this garbage works lmao")
-        fmt.Fprintln(v, "alright alright")
+        log.Println(v, "this garbage works lmao")
+        log.Println(v, "alright alright")
 		v.Wrap = true
 	}
 	return nil
@@ -132,20 +133,15 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func startApp() {
-    //var beatsPerMinute int
-    //_, err := fmt.Scan(&beatsPerMinute)
-    //if err != nil {
-        //log.Fatal("failed to scan bpm", err)
-    //}
     g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
 		log.Panicln(err)
 	}
 	defer g.Close()
     g.Cursor = true
-    label := NewLabel("bitchlabel\nand tits", 1, 1, "bitchShit")
-    input := NewInput("bitchInput", 7, 1, 40, 40)
-    focus := gocui.ManagerFunc(SetFocus("bitchInput"))
+    label := NewLabel("test label", 1, 1, "testLabel")
+    input := NewInput("testInput", 7, 1, 40, 40)
+    focus := gocui.ManagerFunc(SetFocus("testInput"))
     g.SetManager(label, input, focus)
 	//g.SetManagerFunc(layout)
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
@@ -158,6 +154,5 @@ func startApp() {
 
 func main() {
     configureLog()
-    log.Println("gets this")
     startApp()
 }
