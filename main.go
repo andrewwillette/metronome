@@ -49,7 +49,6 @@ func NewLabel(name string, x, y int, body string) *Label {
 }
 
 func (l *Label) Layout(g *gocui.Gui) error {
-    log.Printf("calling input.Layout")
 	v, err := g.SetView(l.name, l.x, l.y, l.x+l.w, l.y+l.h)
 	if err != nil {
 		if err != gocui.ErrUnknownView {
@@ -71,7 +70,6 @@ func NewInput(name string, x, y, w, maxLength int) *Input {
 }
 
 func (i *Input) Layout(g *gocui.Gui) error {
-    log.Printf("calling input.Layout with Input:  %v\n", *i)
 	v, err := g.SetView(i.name, i.x, i.y, i.x+i.w, i.y+2)
 	if err != nil {
 		if err != gocui.ErrUnknownView {
@@ -84,7 +82,19 @@ func (i *Input) Layout(g *gocui.Gui) error {
 }
 
 func (i *Input) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
-    log.Printf("editing swag\n")
+    //log.Printf("editing swag\n, key: %+v", v)
+    //dumper := hex.Dumper(v)
+    //if _, err := io.Copy(dumper, os.Stdin); err != nil {
+        //log.Println("failed to copy dumper lmao")
+    //}
+    //log.Printf(dumper.Close())
+    //log.Printf(dumper)
+    //io.Copy(dumper, log.Reader)
+
+    log.Printf("buffer lines %s", v.BufferLines())
+    log.Printf("ch: %+v", ch)
+    log.Printf("mod: %+v", mod)
+    log.Printf("key: %+v", key)
 	cx, _ := v.Cursor()
 	ox, _ := v.Origin()
 	limit := ox+cx+1 > i.maxLength
@@ -98,15 +108,8 @@ func (i *Input) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) 
 	}
 }
 
+// for early implementation using Gocui.SetManagerFunc(layout)
 func layout(g *gocui.Gui) error {
-	//maxX, maxY := g.Size()
-	//if v, err := g.SetView("hello", maxX/2-7, maxY/2, maxX/2+7, maxY/2+2); err != nil {
-		//if err != gocui.ErrUnknownView {
-			//return err
-		//}
-
-		//fmt.Fprintln(v, "Hello world!")
-	//}
     if v, err := g.SetView("stdin", 0, 0, 80, 35); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
@@ -121,6 +124,7 @@ func layout(g *gocui.Gui) error {
 	return nil
 }
 
+// Set focus for gui
 func SetFocus(name string) func(g *gocui.Gui) error {
 	return func(g *gocui.Gui) error {
 		_, err := g.SetCurrentView(name)
