@@ -81,31 +81,23 @@ func (i *Input) Layout(g *gocui.Gui) error {
 	return nil
 }
 
+// Edit the input, set the metronome bpm to the value
 func (i *Input) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
-    //log.Printf("editing swag\n, key: %+v", v)
-    //dumper := hex.Dumper(v)
-    //if _, err := io.Copy(dumper, os.Stdin); err != nil {
-        //log.Println("failed to copy dumper lmao")
-    //}
-    //log.Printf(dumper.Close())
-    //log.Printf(dumper)
-    //io.Copy(dumper, log.Reader)
-
-    log.Printf("buffer lines %s", v.BufferLines())
-    log.Printf("ch: %+v", ch)
-    log.Printf("mod: %+v", mod)
-    log.Printf("key: %+v", key)
 	cx, _ := v.Cursor()
 	ox, _ := v.Origin()
 	limit := ox+cx+1 > i.maxLength
 	switch {
 	case ch != 0 && mod == 0 && !limit:
-		v.EditWrite(ch)
+        v.EditWrite(ch)
 	case key == gocui.KeySpace && !limit:
 		v.EditWrite(' ')
 	case key == gocui.KeyBackspace || key == gocui.KeyBackspace2:
 		v.EditDelete(true)
 	}
+    log.Printf("buffer lines %s", v.BufferLines())
+    log.Printf("ch: %+v", ch)
+    log.Printf("mod: %+v", mod)
+    log.Printf("key: %+v", key)
 }
 
 // for early implementation using Gocui.SetManagerFunc(layout)
@@ -117,8 +109,6 @@ func layout(g *gocui.Gui) error {
 		if _, err := g.SetCurrentView("stdin"); err != nil {
 			return err
         }
-        log.Println(v, "this garbage works lmao")
-        log.Println(v, "alright alright")
 		v.Wrap = true
 	}
 	return nil
