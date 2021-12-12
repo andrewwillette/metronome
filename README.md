@@ -1,3 +1,3 @@
 # Metronome
 
-Terminal user interface metronome.
+Metronome for a terminal user interface.
