@@ -9,7 +9,11 @@ import (
 	"time"
 
 	"github.com/jroimartin/gocui"
-	"github.com/nsf/termbox-go"
+)
+
+var (
+	done               = make(chan struct{})
+	globalGui          *gocui.Gui
 )
 
 // write log to file
@@ -62,17 +66,17 @@ func (l *Label) Layout(g *gocui.Gui) error {
 	return nil
 }
 
-type Input struct {
+type MetronomeInput struct {
 	name, value        string
 	x, y, w, maxLength int
 	metronome          *Metronome
 }
 
-func NewInput(name string, x, y, w, maxLength int, metr *Metronome) *Input {
-	return &Input{name: name, x: x, y: y, w: w, maxLength: maxLength, metronome: metr}
+func NewMetronomeInput(name string, x, y, w, maxLength int, metr *Metronome) *MetronomeInput {
+	return &MetronomeInput{name: name, x: x, y: y, w: w, maxLength: maxLength, metronome: metr}
 }
 
-func (i *Input) Layout(g *gocui.Gui) error {
+func (i *MetronomeInput) Layout(g *gocui.Gui) error {
 	v, err := g.SetView(i.name, i.x, i.y, i.x+i.w, i.y+2)
 	if err != nil {
 		if err != gocui.ErrUnknownView {
@@ -84,8 +88,9 @@ func (i *Input) Layout(g *gocui.Gui) error {
 	return nil
 }
 
-// Edit the input, set the metronome bpm to the value
-func (i *Input) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+// Edit metronome input
+// Trigger goroutine updating the metronome view at bpm
+func (i *MetronomeInput) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
 	cx, _ := v.Cursor()
 	ox, _ := v.Origin()
 	limit := ox+cx+1 > i.maxLength
@@ -97,14 +102,17 @@ func (i *Input) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) 
 	case key == gocui.KeyBackspace || key == gocui.KeyBackspace2:
 		v.EditDelete(true)
 	}
-	//metronomeView := g
 	i.value = v.Buffer()
 	beatsPerMinutes, err := strconv.Atoi(strings.Replace(v.Buffer(), "\n", "", -1))
 	if err != nil {
 		log.Println(err)
 	}
-	log.Printf("setting metr bpm to %d", beatsPerMinutes)
-	i.metronome.bpm = beatsPerMinutes
+    // causes old metronomeCounter goroutine to return
+	close(done)
+	done = make(chan struct{})
+	if beatsPerMinutes > 0 {
+        go metronomeCounter(beatsPerMinutes)
+	}
 }
 
 type Metronome struct {
@@ -119,39 +127,14 @@ func setMetronomeBpm(metronome *Metronome) error {
 	return nil
 }
 
-const tickerSymbol = "x"
-
-func tickMetronome(beatsPerMinute int, view *gocui.View, g *gocui.Gui) {
-	if beatsPerMinute > 0 {
-		milliseconds := 60000 / beatsPerMinute
-		for range time.Tick(time.Millisecond * time.Duration(milliseconds)) {
-			//view.Clear()
-			if view.Buffer() == tickerSymbol {
-				log.Println("here5")
-				fmt.Fprintf(view, "")
-			} else {
-				log.Println("here6")
-				fmt.Fprintf(view, tickerSymbol)
-			}
-			termbox.Sync()
-			log.Println("tick")
-			log.Println(view.Buffer())
-		}
-	}
-}
-
 func (metronome *Metronome) Layout(g *gocui.Gui) error {
-	log.Println("metronome.Layout()")
 	v, err := g.SetView(metronome.name, metronome.x, metronome.y, metronome.x+metronome.w, metronome.y+2)
 	if err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 	}
-	//v.Clear()
-	//fmt.Fprintf(v, fmt.Sprint(metronome.bpm))
 	v.Editable = true
-	go tickMetronome(metronome.bpm, v, g)
 	return nil
 }
 
@@ -167,33 +150,71 @@ func SetFocus(name string) func(g *gocui.Gui) error {
 	}
 }
 
+// quit gui app, close display ticker goroutine
 func quit(g *gocui.Gui, v *gocui.View) error {
+	close(done)
 	return gocui.ErrQuit
+}
+
+func keybindings(g *gocui.Gui) error {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+		return err
+	}
+	return nil
 }
 
 func startApp() {
 	g, err := gocui.NewGui(gocui.OutputNormal)
+	globalGui = g
 	if err != nil {
 		log.Panicln(err)
 	}
-	defer g.Close()
-	g.Cursor = true
 	label := NewLabel("Beats Per Minute Label", 1, 1, "Beats Per Minute")
 	metronome := NewMetronome("metronome", 10, 10, 40)
-	input := NewInput("beatsPerMinuteInput", 7, 1, 40, 40, metronome)
-	focus := gocui.ManagerFunc(SetFocus("beatsPerMinuteInput"))
-	g.SetManager(label, input, metronome, focus)
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	input := NewMetronomeInput("metronomeInput", 7, 1, 40, 40, metronome)
+	focus := gocui.ManagerFunc(SetFocus("metronomeInput"))
+	globalGui.SetManager(label, input, metronome, focus)
+	if err := keybindings(globalGui); err != nil {
 		log.Panicln(err)
 	}
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err := globalGui.MainLoop(); err != nil && err != gocui.ErrQuit {
 		log.Panicln(err)
 	}
 }
 
+var tickFlag bool = true
+
+func metronomeCounter(beatsPerMinute int) {
+	milliseconds := 60000 / beatsPerMinute
+	for {
+		select {
+		case <-done:
+			return
+		case <-time.After(time.Duration(milliseconds) * time.Millisecond):
+			globalGui.Update(func(g *gocui.Gui) error {
+				v, err := g.View("metronome")
+				if err != nil {
+					log.Panicln("error getting metronome view")
+					return err
+				}
+				v.Clear()
+				if tickFlag {
+					fmt.Fprintln(v, "❌")
+					tickFlag = false
+				} else {
+					fmt.Fprintln(v, "   ❎")
+					tickFlag = true
+				}
+				return nil
+			})
+		}
+	}
+}
+
+const NumGoroutines = 1
+
 func main() {
-	metronome := &Metronome{bpm: 60}
 	configureLog()
-	log.Println(metronome)
 	startApp()
+
 }
