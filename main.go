@@ -16,6 +16,11 @@ var (
 	globalGui          *gocui.Gui
 )
 
+func main() {
+	configureLog()
+	startMetronome()
+}
+
 // write log to file
 func configureLog() {
 	f, err := os.OpenFile("metronome.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
@@ -23,13 +28,6 @@ func configureLog() {
 		fmt.Printf("error opening file: %v", err)
 	}
 	log.SetOutput(f)
-}
-
-func metronome(BeatsPerMinute int) {
-	milliseconds := 60000 / BeatsPerMinute
-	for range time.Tick(time.Millisecond * time.Duration(milliseconds)) {
-		fmt.Println("Tick")
-	}
 }
 
 type Label struct {
@@ -67,13 +65,12 @@ func (l *Label) Layout(g *gocui.Gui) error {
 }
 
 type MetronomeInput struct {
-	name, value        string
+	name        string
 	x, y, w, maxLength int
-	metronome          *Metronome
 }
 
-func NewMetronomeInput(name string, x, y, w, maxLength int, metr *Metronome) *MetronomeInput {
-	return &MetronomeInput{name: name, x: x, y: y, w: w, maxLength: maxLength, metronome: metr}
+func NewMetronomeInput(name string, x, y, w, maxLength int) *MetronomeInput {
+	return &MetronomeInput{name: name, x: x, y: y, w: w, maxLength: maxLength}
 }
 
 func (i *MetronomeInput) Layout(g *gocui.Gui) error {
@@ -95,14 +92,13 @@ func (i *MetronomeInput) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.M
 	ox, _ := v.Origin()
 	limit := ox+cx+1 > i.maxLength
 	switch {
-	case ch != 0 && mod == 0 && !limit:
-		v.EditWrite(ch)
-	case key == gocui.KeySpace && !limit:
-		v.EditWrite(' ')
-	case key == gocui.KeyBackspace || key == gocui.KeyBackspace2:
-		v.EditDelete(true)
+        case ch != 0 && mod == 0 && !limit:
+            v.EditWrite(ch)
+        case key == gocui.KeySpace && !limit:
+            v.EditWrite(' ')
+        case key == gocui.KeyBackspace || key == gocui.KeyBackspace2:
+            v.EditDelete(true)
 	}
-	i.value = v.Buffer()
 	beatsPerMinutes, err := strconv.Atoi(strings.Replace(v.Buffer(), "\n", "", -1))
 	if err != nil {
 		log.Println(err)
@@ -163,17 +159,17 @@ func keybindings(g *gocui.Gui) error {
 	return nil
 }
 
-func startApp() {
+func startMetronome() {
 	g, err := gocui.NewGui(gocui.OutputNormal)
 	globalGui = g
 	if err != nil {
 		log.Panicln(err)
 	}
 	label := NewLabel("Beats Per Minute Label", 1, 1, "Beats Per Minute")
-	metronome := NewMetronome("metronome", 10, 10, 40)
-	input := NewMetronomeInput("metronomeInput", 7, 1, 40, 40, metronome)
+	bpmInput := NewMetronomeInput("metronomeInput", 1, 3, 40, 40)
+	metronome := NewMetronome("metronome", 1, 6, 40)
 	focus := gocui.ManagerFunc(SetFocus("metronomeInput"))
-	globalGui.SetManager(label, input, metronome, focus)
+	globalGui.SetManager(label, bpmInput, metronome, focus)
 	if err := keybindings(globalGui); err != nil {
 		log.Panicln(err)
 	}
@@ -209,12 +205,4 @@ func metronomeCounter(beatsPerMinute int) {
 			})
 		}
 	}
-}
-
-const NumGoroutines = 1
-
-func main() {
-	configureLog()
-	startApp()
-
 }
