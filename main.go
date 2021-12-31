@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	done               = make(chan struct{})
-	globalGui          *gocui.Gui
+	done      = make(chan struct{})
+	globalGui *gocui.Gui
 )
 
 func main() {
@@ -65,7 +65,7 @@ func (l *Label) Layout(g *gocui.Gui) error {
 }
 
 type MetronomeInput struct {
-	name        string
+	name               string
 	x, y, w, maxLength int
 }
 
@@ -92,22 +92,22 @@ func (i *MetronomeInput) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.M
 	ox, _ := v.Origin()
 	limit := ox+cx+1 > i.maxLength
 	switch {
-        case ch != 0 && mod == 0 && !limit:
-            v.EditWrite(ch)
-        case key == gocui.KeySpace && !limit:
-            v.EditWrite(' ')
-        case key == gocui.KeyBackspace || key == gocui.KeyBackspace2:
-            v.EditDelete(true)
+	case ch != 0 && mod == 0 && !limit:
+		v.EditWrite(ch)
+	case key == gocui.KeySpace && !limit:
+		v.EditWrite(' ')
+	case key == gocui.KeyBackspace || key == gocui.KeyBackspace2:
+		v.EditDelete(true)
 	}
 	beatsPerMinutes, err := strconv.Atoi(strings.Replace(v.Buffer(), "\n", "", -1))
 	if err != nil {
 		log.Println(err)
 	}
-    // causes old metronomeCounter goroutine to return
+	// causes old metronomeCounter goroutine to return
 	close(done)
 	done = make(chan struct{})
 	if beatsPerMinutes > 0 {
-        go metronomeCounter(beatsPerMinutes)
+		go tickMetronome(beatsPerMinutes)
 	}
 }
 
@@ -178,9 +178,11 @@ func startMetronome() {
 	}
 }
 
-var tickFlag bool = true
+var tickIterator = 0
+var tickArray = []string{"G", "G", "G", "G", "D", "D", "D", "D"}
 
-func metronomeCounter(beatsPerMinute int) {
+// Updates metronome view each bpm
+func tickMetronome(beatsPerMinute int) {
 	milliseconds := 60000 / beatsPerMinute
 	for {
 		select {
@@ -194,13 +196,10 @@ func metronomeCounter(beatsPerMinute int) {
 					return err
 				}
 				v.Clear()
-				if tickFlag {
-					fmt.Fprintln(v, "❌")
-					tickFlag = false
-				} else {
-					fmt.Fprintln(v, "   ❎")
-					tickFlag = true
-				}
+				spaceToPrepend := strings.Repeat(" ", tickIterator)
+				toPrint := spaceToPrepend + tickArray[tickIterator]
+				fmt.Fprintln(v, toPrint)
+				tickIterator = (tickIterator + 1) % len(tickArray)
 				return nil
 			})
 		}
