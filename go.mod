@@ -1,6 +1,6 @@
 module metronome
 
-go 1.17
+go 1.18
 
 require (
 	github.com/jroimartin/gocui v0.5.0 // indirect
