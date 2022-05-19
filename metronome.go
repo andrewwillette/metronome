@@ -13,8 +13,23 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var (
+	metronomeDisplay    = ""
+	bpm                 = 0
+	done                = make(chan struct{})
+	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	cursorStyle         = focusedStyle.Copy()
+	noStyle             = lipgloss.NewStyle()
+	helpStyle           = blurredStyle.Copy()
+	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	currentBarIterator  = 0
+	chordsPerBar        = []string{"G", "G", "G", "G", "D", "D", "D", "D"}
+)
+
 func main() {
 	configureLog()
+	go tickMetronome()
 	if err := tea.NewProgram(initialModel()).Start(); err != nil {
 		fmt.Printf("could not start program: %s\n", err)
 		os.Exit(1)
@@ -29,20 +44,6 @@ func configureLog() {
 	}
 	log.SetOutput(f)
 }
-
-var (
-	metronomeDisplay    = ""
-	bpm                 = 0
-	done                = make(chan struct{})
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle         = focusedStyle.Copy()
-	noStyle             = lipgloss.NewStyle()
-	helpStyle           = blurredStyle.Copy()
-	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	currentBarIterator  = 0
-	chordsPerBar        = []string{"G", "G", "G", "G", "D", "D", "D", "D"}
-)
 
 type model struct {
 	focusIndex int
@@ -111,9 +112,13 @@ func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
 
 // Updates metronome view each bpm
 func tickMetronome() {
-	milliseconds := 60000 / bpm
 	var ti = 1
 	for {
+		log.Printf("iteratting and bpm is %d\n", bpm)
+		if !(bpm > 0) {
+			continue
+		}
+		milliseconds := 60000 / bpm
 		select {
 		case <-done:
 		case <-time.After(time.Duration(milliseconds) * time.Millisecond):
