@@ -28,9 +28,15 @@ var (
 	chordsPerBar        = []string{"G", "G", "G", "G", "D", "D", "D", "D"}
 	DefaultMetronome    = Metronome{
 		Frames: []string{"X ", "    X"},
-		FPS:    time.Second / 100,
+		FPS:    bpm2bps(40),
 	}
 )
+
+// bpm2bps get time.Duration of metronome tick for given BPM
+func bpm2bps(bpm int) time.Duration {
+	const bpmConversion float64 = .016666666666667
+	return time.Duration(float64(time.Second) / (float64(bpm) * bpmConversion))
+}
 
 type Metronome struct {
 	Frames []string
@@ -63,7 +69,7 @@ func lg(output string) {
 	}
 }
 
-type model struct {
+type Model struct {
 	focusIndex int
 	bpmInput   textinput.Model
 	Style      lipgloss.Style
@@ -74,17 +80,17 @@ type model struct {
 	cursorMode textinput.CursorMode
 }
 
-func (m model) ID() int {
+func (m Model) ID() int {
 	return m.id
 }
 
-type tickMsg struct {
+type TickMsg struct {
 	Time time.Time
 	tag  int
 	ID   int
 }
 
-func initialModel() model {
+func initialModel() Model {
 	var t textinput.Model
 	t = textinput.New()
 	t.CursorStyle = cursorStyle
@@ -95,7 +101,7 @@ func initialModel() model {
 	t.PromptStyle = focusedStyle
 	t.TextStyle = focusedStyle
 
-	return model{
+	return Model{
 		bpmInput:  t,
 		metronome: DefaultMetronome,
 		id:        nextID(),
@@ -115,12 +121,13 @@ func nextID() int {
 	return lastID
 }
 
-func (m model) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	lg("model.Init()")
-	return textinput.Blink
+	return m.Tick
+	// return textinput.Blink
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	lg("m.Update()")
 	lg(fmt.Sprintf("%+v", msg))
 	switch msg := msg.(type) {
@@ -142,7 +149,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, cmd
 		}
-	case tickMsg:
+	case TickMsg:
 		lg("tickMsg")
 		if msg.ID > 0 && msg.ID != m.id {
 			return m, nil
@@ -162,10 +169,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) tick(id, tag int) tea.Cmd {
+func (m Model) Tick() tea.Msg {
+	return TickMsg{
+		Time: time.Now(),
+		ID:   m.id,
+		tag:  m.tag,
+	}
+}
+func (m Model) tick(id, tag int) tea.Cmd {
 	lg("m.tick()")
 	return tea.Tick(m.metronome.FPS, func(t time.Time) tea.Msg {
-		return tickMsg{
+		return TickMsg{
 			Time: t,
 			ID:   id,
 			tag:  tag,
@@ -173,7 +187,7 @@ func (m model) tick(id, tag int) tea.Cmd {
 	})
 }
 
-func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
+func (m *Model) updateInputs(msg tea.Msg) tea.Cmd {
 	lg("model.updateInputs()")
 	var cmd tea.Cmd
 
@@ -204,7 +218,7 @@ func tickMetronome() {
 	}
 }
 
-func (m model) View() string {
+func (m Model) View() string {
 	lg("m.View()")
 	var b strings.Builder
 
