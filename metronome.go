@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -25,11 +26,20 @@ var (
 	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 	currentBarIterator  = 0
 	chordsPerBar        = []string{"G", "G", "G", "G", "D", "D", "D", "D"}
+	DefaultMetronome    = Metronome{
+		Frames: []string{"X ", "    X"},
+		FPS:    time.Second / 100,
+	}
 )
+
+type Metronome struct {
+	Frames []string
+	FPS    time.Duration
+}
 
 func main() {
 	configureLog()
-	go tickMetronome()
+	// go tickMetronome()
 	if err := tea.NewProgram(initialModel()).Start(); err != nil {
 		fmt.Printf("could not start program: %s\n", err)
 		os.Exit(1)
@@ -45,17 +55,36 @@ func configureLog() {
 	log.SetOutput(f)
 }
 
+const debug = true
+
+func lg(output string) {
+	if debug {
+		log.Println(output)
+	}
+}
+
 type model struct {
 	focusIndex int
 	bpmInput   textinput.Model
+	Style      lipgloss.Style
+	metronome  Metronome
+	frame      int
+	id         int
+	tag        int
 	cursorMode textinput.CursorMode
 }
 
-func initialModel() model {
-	m := model{
-		bpmInput: textinput.Model{},
-	}
+func (m model) ID() int {
+	return m.id
+}
 
+type tickMsg struct {
+	Time time.Time
+	tag  int
+	ID   int
+}
+
+func initialModel() model {
 	var t textinput.Model
 	t = textinput.New()
 	t.CursorStyle = cursorStyle
@@ -66,18 +95,37 @@ func initialModel() model {
 	t.PromptStyle = focusedStyle
 	t.TextStyle = focusedStyle
 
-	m.bpmInput = t
+	return model{
+		bpmInput:  t,
+		metronome: DefaultMetronome,
+		id:        nextID(),
+	}
+}
 
-	return m
+var (
+	lastID int
+	idMtx  sync.Mutex
+)
+
+func nextID() int {
+	lg("nextID()")
+	idMtx.Lock()
+	defer idMtx.Unlock()
+	lastID++
+	return lastID
 }
 
 func (m model) Init() tea.Cmd {
+	lg("model.Init()")
 	return textinput.Blink
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	lg("m.Update()")
+	lg(fmt.Sprintf("%+v", msg))
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		lg("m.Update() tea.KeyMsg")
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
@@ -88,33 +136,58 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			cmds := m.bpmInput.SetCursorMode(m.cursorMode)
 			return m, cmds
+		default:
+			// Handle character input and blinking
+			cmd := m.updateInputs(msg)
+
+			return m, cmd
 		}
+	case tickMsg:
+		lg("tickMsg")
+		if msg.ID > 0 && msg.ID != m.id {
+			return m, nil
+		}
+		if msg.tag > 0 && msg.tag != m.tag {
+			return m, nil
+		}
+		m.frame++
+		if m.frame >= len(m.metronome.Frames) {
+			m.frame = 0
+		}
+		m.tag++
+		return m, m.tick(m.id, m.tag)
 	}
+	lg("m.Update() past msg type switch")
+	// return nil,
+	return m, nil
+}
 
-	// Handle character input and blinking
-	cmd := m.updateInputs(msg)
-
-	return m, cmd
+func (m model) tick(id, tag int) tea.Cmd {
+	lg("m.tick()")
+	return tea.Tick(m.metronome.FPS, func(t time.Time) tea.Msg {
+		return tickMsg{
+			Time: t,
+			ID:   id,
+			tag:  tag,
+		}
+	})
 }
 
 func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
-	var cmds tea.Cmd
+	lg("model.updateInputs()")
+	var cmd tea.Cmd
 
-	// Only text inputs with Focus() set will respond, so it's safe to simply
-	// update all of them here without any further logic.
-	// for i := range m.bpmInput {
-	m.bpmInput, cmds = m.bpmInput.Update(msg)
-	// close(done)
+	m.bpmInput, cmd = m.bpmInput.Update(msg)
 	setMetronomeBpm(m.bpmInput.Value())
 
-	return cmds
+	return cmd
 }
 
 // Updates metronome view each bpm
 func tickMetronome() {
 	var ti = 1
 	for {
-		log.Printf("iteratting and bpm is %d\n", bpm)
+		// log.Printf("iteratting and bpm is %d\n", bpm)
 		if !(bpm > 0) {
 			continue
 		}
@@ -122,7 +195,7 @@ func tickMetronome() {
 		select {
 		case <-done:
 		case <-time.After(time.Duration(milliseconds) * time.Millisecond):
-			log.Println(ti)
+			// lg(ti)
 			ti += 1
 			spaceToPrepend := strings.Repeat(" ", currentBarIterator)
 			currentBarIterator = (currentBarIterator + 1) % len(chordsPerBar)
@@ -132,6 +205,7 @@ func tickMetronome() {
 }
 
 func (m model) View() string {
+	lg("m.View()")
 	var b strings.Builder
 
 	b.WriteString(m.bpmInput.View())
@@ -147,8 +221,9 @@ func (m model) View() string {
 	// 	button = &focusedButton
 	// }
 	// fmt.Fprintf(&b, "\n\n%s\n\n", *button)
-	fmt.Fprintf(&b, "\n\n%s\n\n", metronomeDisplay)
+	fmt.Fprintf(&b, "\n\n%s\n\n", m.Style.Render(m.metronome.Frames[m.frame]))
 
+	// b.WriteString(m.Style.Render(m.metronome.Frames[m.frame]))
 	b.WriteString(helpStyle.Render("cursor mode is "))
 	b.WriteString(cursorModeHelpStyle.Render(m.cursorMode.String()))
 	b.WriteString(helpStyle.Render(" (ctrl+r to change style)"))
@@ -159,12 +234,8 @@ func (m model) View() string {
 func setMetronomeBpm(bpmInput string) {
 	intVar, err := strconv.Atoi(bpmInput)
 	if err != nil {
-		// println(
-		// log.Fatal("cant convert")
-		log.Println("bad number in bpm")
+		lg("bad number in bpm")
 		return
 	}
 	bpm = intVar
-	// tickMetronome(intVar, m)
-	// return strconv.Itoa(intVar)
 }
