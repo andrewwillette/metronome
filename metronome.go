@@ -34,6 +34,7 @@ var (
 
 // bpm2bps get time.Duration of metronome tick for given BPM
 func bpm2bps(bpm int) time.Duration {
+	// https://hextobinary.com/unit/frequency/from/bpm/to/fps
 	const bpmConversion float64 = .016666666666667
 	return time.Duration(float64(time.Second) / (float64(bpm) * bpmConversion))
 }
@@ -49,23 +50,6 @@ func main() {
 	if err := tea.NewProgram(initialModel()).Start(); err != nil {
 		fmt.Printf("could not start program: %s\n", err)
 		os.Exit(1)
-	}
-}
-
-// write log to file
-func configureLog() {
-	f, err := os.OpenFile("metronome.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
-	if err != nil {
-		fmt.Printf("error opening file: %v", err)
-	}
-	log.SetOutput(f)
-}
-
-const debug = true
-
-func lg(output string) {
-	if debug {
-		log.Println(output)
 	}
 }
 
@@ -124,12 +108,10 @@ func nextID() int {
 func (m Model) Init() tea.Cmd {
 	lg("model.Init()")
 	return m.Tick
-	// return textinput.Blink
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	lg("m.Update()")
-	lg(fmt.Sprintf("%+v", msg))
+	lg(fmt.Sprintf("m.Update().\nmsg: %+v", msg))
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		lg("m.Update() tea.KeyMsg")
@@ -192,7 +174,7 @@ func (m *Model) updateInputs(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 
 	m.bpmInput, cmd = m.bpmInput.Update(msg)
-	setMetronomeBpm(m.bpmInput.Value())
+	m.metronome.FPS = bpm2bps(getBpmFromString(m.bpmInput.Value()))
 
 	return cmd
 }
@@ -223,18 +205,6 @@ func (m Model) View() string {
 	var b strings.Builder
 
 	b.WriteString(m.bpmInput.View())
-	// for i := range m.bpmInput {
-	// 	b.WriteString(m.bpmInput[i].View())
-	// 	if i < len(m.bpmInput)-1 {
-	// 		b.WriteRune('\n')
-	// 	}
-	// }
-
-	// button := &blurredButton
-	// if m.focusIndex == 1 {
-	// 	button = &focusedButton
-	// }
-	// fmt.Fprintf(&b, "\n\n%s\n\n", *button)
 	fmt.Fprintf(&b, "\n\n%s\n\n", m.Style.Render(m.metronome.Frames[m.frame]))
 
 	// b.WriteString(m.Style.Render(m.metronome.Frames[m.frame]))
@@ -245,11 +215,29 @@ func (m Model) View() string {
 	return b.String()
 }
 
-func setMetronomeBpm(bpmInput string) {
+func getBpmFromString(bpmInput string) int {
 	intVar, err := strconv.Atoi(bpmInput)
 	if err != nil {
 		lg("bad number in bpm")
-		return
+		return 0
 	}
-	bpm = intVar
+	return intVar
+	// bpm = intVar
+}
+
+// write log to file
+func configureLog() {
+	f, err := os.OpenFile("metronome.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		fmt.Printf("error opening file: %v", err)
+	}
+	log.SetOutput(f)
+}
+
+const debug = true
+
+func lg(output string) {
+	if debug {
+		log.Println(output)
+	}
 }
