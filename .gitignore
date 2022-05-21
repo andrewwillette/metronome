@@ -1,4 +1,3 @@
 metronome
 *.log
-cover.out
-cover.html
+cover.*
