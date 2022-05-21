@@ -45,3 +45,22 @@ func Test_getFrames(t *testing.T) {
 		assert.Equal(t, frames, v.expected)
 	}
 }
+
+func Test_getBpmFromString(t *testing.T) {
+	tts := []struct {
+		provided  string
+		expected  int
+		expectErr bool
+	}{
+		{provided: "54", expected: 54},
+		{provided: "a", expected: 0, expectErr: true},
+	}
+	for _, v := range tts {
+		result, err := getBpmFromString(v.provided)
+		if v.expectErr {
+			assert.NotNil(t, err)
+			continue
+		}
+		assert.Equal(t, v.expected, result)
+	}
+}

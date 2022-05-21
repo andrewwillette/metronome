@@ -176,8 +176,8 @@ func (m *Model) updateInputs(msg tea.Msg) tea.Cmd {
 
 	m.bpmInput, cmd = m.bpmInput.Update(msg)
 
-	bpmVal := getBpmFromString(m.bpmInput.Value())
-	if bpmVal > 0 {
+	bpmVal, err := getBpmFromString(m.bpmInput.Value())
+	if err == nil {
 		m.metronome.FPS = bpm2bps(bpmVal)
 		cmd = m.tick(m.id, m.tag)
 		return cmd
@@ -200,13 +200,13 @@ func (m Model) View() string {
 	return b.String()
 }
 
-func getBpmFromString(bpmInput string) int {
+func getBpmFromString(bpmInput string) (int, error) {
 	intVar, err := strconv.Atoi(bpmInput)
 	if err != nil {
 		lg("bad number in bpm")
-		return 0
+		return 0, err
 	}
-	return intVar
+	return intVar, nil
 }
 
 func configureLog() {
