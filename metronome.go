@@ -18,7 +18,6 @@ var (
 	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	cursorStyle         = focusedStyle.Copy()
-	helpStyle           = blurredStyle.Copy()
 	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 	chordsPerBar        = []string{"G", "G", "G", "G", "D", "D", "D", "D"}
 	defaultMetronome    = Metronome{
@@ -52,7 +51,7 @@ type Metronome struct {
 func main() {
 	configureLog()
 	// go tickMetronome()
-	if err := tea.NewProgram(initialModel()).Start(); err != nil {
+	if err := tea.NewProgram(newModel()).Start(); err != nil {
 		fmt.Printf("could not start program: %s\n", err)
 		os.Exit(1)
 	}
@@ -78,7 +77,7 @@ type TickMsg struct {
 	ID   int
 }
 
-func initialModel() Model {
+func newModel() Model {
 	var t textinput.Model
 	t = textinput.New()
 	t.CursorStyle = cursorStyle
@@ -127,8 +126,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursorMode > textinput.CursorHide {
 				m.cursorMode = textinput.CursorBlink
 			}
-			cmds := m.bpmInput.SetCursorMode(m.cursorMode)
-			return m, cmds
+			cmd := m.bpmInput.SetCursorMode(m.cursorMode)
+			return m, cmd
 		default:
 			cmd := m.updateInputs(msg)
 			return m, cmd
@@ -193,10 +192,6 @@ func (m Model) View() string {
 	b.WriteString(m.bpmInput.View())
 	fmt.Fprintf(&b, "\n\n%s\n\n", m.Style.Render(m.metronome.Frames[m.frame]))
 
-	b.WriteString(helpStyle.Render("cursor mode is "))
-	b.WriteString(cursorModeHelpStyle.Render(m.cursorMode.String()))
-	b.WriteString(helpStyle.Render(" (ctrl+r to change style)"))
-
 	return b.String()
 }
 
@@ -217,7 +212,7 @@ func configureLog() {
 	log.SetOutput(f)
 }
 
-const debug = true
+const debug = false
 
 func lg(output string) {
 	if debug {

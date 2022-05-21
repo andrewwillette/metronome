@@ -64,3 +64,28 @@ func Test_getBpmFromString(t *testing.T) {
 		assert.Equal(t, v.expected, result)
 	}
 }
+
+func Test_newModel(t *testing.T) {
+	initMod := newModel()
+	assert.Equal(t, lastID, initMod.id)
+	newerModel := newModel()
+	assert.Equal(t, lastID, newerModel.id)
+}
+
+func Test_initModel(t *testing.T) {
+	m := newModel()
+	res := m.Init()
+	assert.IsType(t, TickMsg{}, res())
+}
+
+func Test_View(t *testing.T) {
+	m := newModel()
+	view := m.View()
+	assert.Contains(t, view, getFrames(defaultMetronome.Frames)[0])
+}
+
+func Test_ID(t *testing.T) {
+	m := newModel()
+	res := m.ID()
+	assert.Equal(t, lastID, res)
+}
