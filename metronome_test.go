@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -82,6 +84,13 @@ func Test_View(t *testing.T) {
 	m := newModel()
 	view := m.View()
 	assert.Contains(t, view, getFrames(defaultMetronome.Frames)[0])
+}
+
+func Test_Update(t *testing.T) {
+	m := newModel()
+	tmd, cmd := m.Update(tea.KeyCtrlC.String)
+	fmt.Printf("teamodel returns from update\n%+v\n", tmd)
+	fmt.Printf("cmd returns from update\n%+v\n", cmd)
 }
 
 func Test_ID(t *testing.T) {
