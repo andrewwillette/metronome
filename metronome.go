@@ -91,6 +91,7 @@ func newModel() Model {
 		bpmInput:  t,
 		metronome: defaultMetronome,
 		id:        nextID(),
+		Style:     lipgloss.NewStyle().Background(lipgloss.Color("#7D56F4")),
 	}
 }
 
@@ -175,11 +176,11 @@ func (m *Model) updateInputs(msg tea.Msg) tea.Cmd {
 	m.bpmInput, cmd = m.bpmInput.Update(msg)
 
 	bpmVal, err := getBpmFromString(m.bpmInput.Value())
-	if err == nil {
-		m.metronome.FPS = bpm2bps(bpmVal)
-		cmd = m.tick(m.id, m.tag)
+	if err != nil {
 		return cmd
 	}
+	m.metronome.FPS = bpm2bps(bpmVal)
+	cmd = m.tick(m.id, m.tag)
 
 	return cmd
 }
