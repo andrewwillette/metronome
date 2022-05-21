@@ -49,10 +49,9 @@ type Metronome struct {
 }
 
 func main() {
-	configureLog()
-	// go tickMetronome()
+	configureLog("metronome.log", false)
 	if err := tea.NewProgram(newModel()).Start(); err != nil {
-		fmt.Printf("could not start program: %s\n", err)
+		lg(fmt.Sprintf("could not start program: %s\n", err))
 		os.Exit(1)
 	}
 }
@@ -204,15 +203,16 @@ func getBpmFromString(bpmInput string) (int, error) {
 	return intVar, nil
 }
 
-func configureLog() {
-	f, err := os.OpenFile("metronome.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+var debug = false
+
+func configureLog(logFile string, debugVal bool) {
+	debug = debugVal
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		fmt.Printf("error opening file: %v", err)
 	}
 	log.SetOutput(f)
 }
-
-const debug = false
 
 func lg(output string) {
 	if debug {

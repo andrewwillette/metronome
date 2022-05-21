@@ -1,10 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
 )
@@ -87,14 +91,90 @@ func Test_View(t *testing.T) {
 }
 
 func Test_Update(t *testing.T) {
-	m := newModel()
-	tmd, cmd := m.Update(tea.KeyCtrlC.String)
-	fmt.Printf("teamodel returns from update\n%+v\n", tmd)
-	fmt.Printf("cmd returns from update\n%+v\n", cmd)
+	t.Run("Updating with KeyMsg", func(t *testing.T) {
+		m := newModel()
+		tts := []struct {
+			keyType tea.KeyType
+			runes   []rune
+		}{
+			{
+				keyType: tea.KeyCtrlC,
+				runes:   nil,
+			},
+			{
+				keyType: tea.KeyCtrlR,
+				runes:   nil,
+			},
+			{
+				runes: []rune{'1'},
+			},
+		}
+		for _, v := range tts {
+			key := tea.KeyMsg(tea.Key{
+				Type:  v.keyType,
+				Runes: v.runes,
+			})
+			m.cursorMode = textinput.CursorHide + 1
+			_, _ = m.Update(key)
+		}
+	})
+
+	t.Run("Updating with TickMsg", func(t *testing.T) {
+		m := newModel()
+		// much of this is no good
+		tts := []struct {
+			frame,
+			tickId,
+			tag,
+			modelId,
+			expectedTagVal int
+			nilCmdReturned bool
+		}{
+			{
+				frame:          1,
+				tag:            1,
+				modelId:        1,
+				tickId:         1,
+				expectedTagVal: 2,
+			},
+		}
+		for _, v := range tts {
+			m.frame = len(m.metronome.Frames)
+			tm := TickMsg{
+				ID:  v.tickId,
+				tag: v.tag,
+			}
+			m.id = v.modelId
+			m.tag = v.tag
+			_, cmd := m.Update(tm)
+			if !v.nilCmdReturned {
+				assert.NotNil(t, cmd)
+			}
+		}
+	})
 }
 
 func Test_ID(t *testing.T) {
 	m := newModel()
 	res := m.ID()
 	assert.Equal(t, lastID, res)
+}
+
+func Test_configureLog(t *testing.T) {
+	const logFile = "testfile.log"
+	defer os.Remove(logFile)
+	_, err := os.Stat(logFile)
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Log(fmt.Sprintf("%v logfile should not exist", logFile))
+		t.Fail()
+	}
+	configureLog(logFile, true)
+	_, err = os.Stat(logFile)
+	if err != nil {
+		t.Fail()
+	}
+	const toLog = "hello log"
+	lg(toLog)
+	logFileBytes, _ := ioutil.ReadFile(logFile)
+	assert.Contains(t, string(logFileBytes), toLog)
 }
