@@ -57,13 +57,14 @@ func main() {
 }
 
 type Model struct {
-	bpmInput   textinput.Model
-	Style      lipgloss.Style
-	metronome  Metronome
-	frame      int
-	id         int
-	tag        int
-	cursorMode textinput.CursorMode
+	bpmInput            textinput.Model
+	bpmInputStyle       lipgloss.Style
+	metronomeFrameStyle lipgloss.Style
+	metronome           Metronome
+	frame               int
+	id                  int
+	tag                 int
+	cursorMode          textinput.CursorMode
 }
 
 func (m Model) ID() int {
@@ -88,10 +89,11 @@ func newModel() Model {
 	t.TextStyle = focusedStyle
 
 	return Model{
-		bpmInput:  t,
-		metronome: defaultMetronome,
-		id:        nextID(),
-		Style:     lipgloss.NewStyle().Background(lipgloss.Color("#7D56F4")),
+		bpmInput:            t,
+		metronome:           defaultMetronome,
+		id:                  nextID(),
+		bpmInputStyle:       lipgloss.NewStyle().BorderStyle(lipgloss.DoubleBorder()),
+		metronomeFrameStyle: lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()),
 	}
 }
 
@@ -189,8 +191,8 @@ func (m Model) View() string {
 	lg("m.View()")
 	var b strings.Builder
 
-	b.WriteString(m.bpmInput.View())
-	fmt.Fprintf(&b, "\n\n%s\n\n", m.Style.Render(m.metronome.Frames[m.frame]))
+	b.WriteString(m.bpmInputStyle.Render(m.bpmInput.View()))
+	fmt.Fprintf(&b, "\n\n%s\n\n", m.metronomeFrameStyle.Render(m.metronome.Frames[m.frame]))
 
 	return b.String()
 }
