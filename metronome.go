@@ -126,9 +126,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds := m.bpmInput.SetCursorMode(m.cursorMode)
 			return m, cmds
 		default:
-			// Handle character input and blinking
 			cmd := m.updateInputs(msg)
-
 			return m, cmd
 		}
 	case TickMsg:
@@ -146,8 +144,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tag++
 		return m, m.tick(m.id, m.tag)
 	}
-	lg("m.Update() past msg type switch")
-	// return nil,
 	return m, nil
 }
 
@@ -158,6 +154,7 @@ func (m Model) Tick() tea.Msg {
 		tag:  m.tag,
 	}
 }
+
 func (m Model) tick(id, tag int) tea.Cmd {
 	lg("m.tick()")
 	return tea.Tick(m.metronome.FPS, func(t time.Time) tea.Msg {
@@ -174,30 +171,15 @@ func (m *Model) updateInputs(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 
 	m.bpmInput, cmd = m.bpmInput.Update(msg)
-	m.metronome.FPS = bpm2bps(getBpmFromString(m.bpmInput.Value()))
+
+	bpmVal := getBpmFromString(m.bpmInput.Value())
+	if bpmVal > 0 {
+		m.metronome.FPS = bpm2bps(bpmVal)
+		cmd = m.tick(m.id, m.tag)
+		return cmd
+	}
 
 	return cmd
-}
-
-// Updates metronome view each bpm
-func tickMetronome() {
-	var ti = 1
-	for {
-		// log.Printf("iteratting and bpm is %d\n", bpm)
-		if !(bpm > 0) {
-			continue
-		}
-		milliseconds := 60000 / bpm
-		select {
-		case <-done:
-		case <-time.After(time.Duration(milliseconds) * time.Millisecond):
-			// lg(ti)
-			ti += 1
-			spaceToPrepend := strings.Repeat(" ", currentBarIterator)
-			currentBarIterator = (currentBarIterator + 1) % len(chordsPerBar)
-			metronomeDisplay = spaceToPrepend + chordsPerBar[currentBarIterator]
-		}
-	}
 }
 
 func (m Model) View() string {
@@ -207,7 +189,6 @@ func (m Model) View() string {
 	b.WriteString(m.bpmInput.View())
 	fmt.Fprintf(&b, "\n\n%s\n\n", m.Style.Render(m.metronome.Frames[m.frame]))
 
-	// b.WriteString(m.Style.Render(m.metronome.Frames[m.frame]))
 	b.WriteString(helpStyle.Render("cursor mode is "))
 	b.WriteString(cursorModeHelpStyle.Render(m.cursorMode.String()))
 	b.WriteString(helpStyle.Render(" (ctrl+r to change style)"))
@@ -222,10 +203,8 @@ func getBpmFromString(bpmInput string) int {
 		return 0
 	}
 	return intVar
-	// bpm = intVar
 }
 
-// write log to file
 func configureLog() {
 	f, err := os.OpenFile("metronome.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
