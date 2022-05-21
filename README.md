@@ -1,4 +1,4 @@
-Metronome for a terminal user interface.
+TUI Metronome
 
 ![screen-gif](./metronome.gif)
 
