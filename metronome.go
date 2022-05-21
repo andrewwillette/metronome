@@ -15,22 +15,27 @@ import (
 )
 
 var (
-	metronomeDisplay    = ""
-	bpm                 = 0
-	done                = make(chan struct{})
 	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	cursorStyle         = focusedStyle.Copy()
-	noStyle             = lipgloss.NewStyle()
 	helpStyle           = blurredStyle.Copy()
 	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	currentBarIterator  = 0
 	chordsPerBar        = []string{"G", "G", "G", "G", "D", "D", "D", "D"}
-	DefaultMetronome    = Metronome{
-		Frames: []string{"X ", "    X"},
-		FPS:    bpm2bps(40),
+	defaultMetronome    = Metronome{
+		Frames: getFrames(chordsPerBar),
+		FPS:    bpm2bps(1),
 	}
 )
+
+func getFrames(bars []string) []string {
+	toReturn := []string{}
+	space := ""
+	for _, v := range bars {
+		toReturn = append(toReturn, space+v)
+		space = " " + space
+	}
+	return toReturn
+}
 
 // bpm2bps get time.Duration of metronome tick for given BPM
 func bpm2bps(bpm int) time.Duration {
@@ -54,7 +59,6 @@ func main() {
 }
 
 type Model struct {
-	focusIndex int
 	bpmInput   textinput.Model
 	Style      lipgloss.Style
 	metronome  Metronome
@@ -87,7 +91,7 @@ func initialModel() Model {
 
 	return Model{
 		bpmInput:  t,
-		metronome: DefaultMetronome,
+		metronome: defaultMetronome,
 		id:        nextID(),
 	}
 }
