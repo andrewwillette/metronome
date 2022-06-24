@@ -178,3 +178,7 @@ func Test_configureLog(t *testing.T) {
 	logFileBytes, _ := ioutil.ReadFile(logFile)
 	assert.Contains(t, string(logFileBytes), toLog)
 }
+
+func Test_GetSongsFromXdgConfig(t *testing.T) {
+	getSongsFromXdgConfig()
+}

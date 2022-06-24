@@ -222,3 +222,7 @@ func lg(output string) {
 		log.Println(output)
 	}
 }
+
+func getSongsFromXdgConfig() {
+	print("swag\n")
+}
