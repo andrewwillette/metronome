@@ -1,11 +1,10 @@
-TUI Metronome
-
-![screen-gif](./metronome.gif)
+# Metronome.
+A TUI metronome with support for iterating over declared chord patterns.
 
 # Installation
-* `git clone` this repository
-* ensure the `go` executable exists on your `$PATH`
-* execute `go run .`
+* Execute `git clone git@github.com:andrewwillette/metronome.git`.
+* Ensure the `go` executable exists on your `$PATH`.
+* Execute `go run .`.
 
 # Configuration
 ## Content
