@@ -27,7 +27,8 @@ var (
 	}
 )
 
-func StartUi(songs []musicparse.Song) {
+func StartUi() {
+	// songs := musicparse.GetDefaultSongs()
 	if err := tea.NewProgram(newModel()).Start(); err != nil {
 		metrlog.Lg(fmt.Sprintf("could not start program: %s\n", err))
 		os.Exit(1)

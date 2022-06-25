@@ -48,3 +48,7 @@ func readSongsFromDir(fpath string) []Song {
 	}
 	return songs
 }
+
+func GetDefaultResources() []Song {
+	return readSongsFromDir("./../resources")
+}
