@@ -11,26 +11,27 @@ A TUI metronome with support for iterating over declared chord patterns.
 Files which will be used for metronomes ticking. They represent musical songs and their chords, per beat.
 An example specification for the classic song made famous by Hank Williams, "Lost Highway".
 
-``` yml
-song: LostHighway
- - section:A
-  bar:DDDD
-  bar:DDGG
-  bar:DDDD
-  bar:DDDD
-  bar:DDDD
-  bar:DDGG
-  bar:AAAA
-  bar:AAAA
- - section:B
-  bar:GGGG
-  bar:GGGG
-  bar:DDDD
-  bar:DDDD
-  bar:DDDD
-  bar:DDAA
-  bar:DDDD
-  bar:DDDD
+```yml
+song: Lost Highway
+sections:
+  a:
+    - [D,D,D,D]
+    - [D,D,G,G]
+    - [D,D,D,D]
+    - [D,D,D,D]
+    - [D,D,D,D]
+    - [D,D,G,G]
+    - [A,A,A,A]
+    - [A,A,A,A]
+  b:
+    - [G,G,G,G]
+    - [G,G,G,G]
+    - [D,D,D,D]
+    - [D,D,D,D]
+    - [D,D,D,D]
+    - [D,D,A,A]
+    - [D,D,D,D]
+    - [D,D,D,D]
 ```
 
 ## Location
