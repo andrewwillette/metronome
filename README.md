@@ -33,6 +33,3 @@ sections:
     - [D,D,D,D]
     - [D,D,D,D]
 ```
-
-## Location
-Metronome follows the [XDG base dir specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html). Store configuration files in `~/.config/metronome/`.
