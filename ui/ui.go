@@ -9,22 +9,15 @@ import (
 	"time"
 
 	metrlog "github.com/andrewwillette/metronome/log"
-	"github.com/andrewwillette/metronome/musicparse"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 var (
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle         = focusedStyle.Copy()
-	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
-	chordsPerBar        = []string{"G", "G", "G", "G", "D", "D", "D", "D"}
-	defaultMetronome    = Metronome{
-		Frames: getFrames(chordsPerBar),
-		FPS:    bpm2bps(1),
-	}
+	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	cursorStyle  = focusedStyle.Copy()
+	chordsPerBar = []string{"G", "G", "G", "G", "D", "D", "D", "D"}
 )
 
 func StartUi() {
@@ -52,23 +45,19 @@ func bpm2bps(bpm int) time.Duration {
 	return time.Duration(float64(time.Second) / (float64(bpm) * bpmConversion))
 }
 
-type Metronome struct {
-	Frames []string
-	FPS    time.Duration
-}
-
-type Model struct {
+type MetronomeModel struct {
 	bpmInput            textinput.Model
 	bpmInputStyle       lipgloss.Style
 	metronomeFrameStyle lipgloss.Style
-	metronome           Metronome
+	frames              []string
+	fps                 time.Duration
 	frame               int
 	id                  int
 	tag                 int
 	cursorMode          textinput.CursorMode
 }
 
-func (m Model) ID() int {
+func (m MetronomeModel) ID() int {
 	return m.id
 }
 
@@ -78,7 +67,7 @@ type TickMsg struct {
 	ID   int
 }
 
-func newModel() Model {
+func newModel() MetronomeModel {
 	var t textinput.Model
 	t = textinput.New()
 	t.CursorStyle = cursorStyle
@@ -89,9 +78,10 @@ func newModel() Model {
 	t.PromptStyle = focusedStyle
 	t.TextStyle = focusedStyle
 
-	return Model{
+	return MetronomeModel{
 		bpmInput:            t,
-		metronome:           defaultMetronome,
+		frames:              getFrames(chordsPerBar),
+		fps:                 bpm2bps(1),
 		id:                  nextID(),
 		bpmInputStyle:       lipgloss.NewStyle().BorderStyle(lipgloss.DoubleBorder()),
 		metronomeFrameStyle: lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()),
@@ -111,12 +101,14 @@ func nextID() int {
 	return lastID
 }
 
-func (m Model) Init() tea.Cmd {
+func (m MetronomeModel) Init() tea.Cmd {
 	metrlog.Lg("model.Init()")
 	return m.Tick
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+var tickernum = 0
+
+func (m MetronomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	metrlog.Lg(fmt.Sprintf("m.Update().\nmsg: %+v", msg))
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -136,6 +128,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 	case TickMsg:
+		tickernum++
 		metrlog.Lg("tickMsg")
 		if msg.ID > 0 && msg.ID != m.id {
 			return m, nil
@@ -144,7 +137,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.frame++
-		if m.frame >= len(m.metronome.Frames) {
+		if m.frame >= len(m.frames) {
 			m.frame = 0
 		}
 		m.tag++
@@ -153,7 +146,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) Tick() tea.Msg {
+func (m MetronomeModel) Tick() tea.Msg {
 	return TickMsg{
 		Time: time.Now(),
 		ID:   m.id,
@@ -161,9 +154,9 @@ func (m Model) Tick() tea.Msg {
 	}
 }
 
-func (m Model) tick(id, tag int) tea.Cmd {
+func (m MetronomeModel) tick(id, tag int) tea.Cmd {
 	metrlog.Lg("m.tick()")
-	return tea.Tick(m.metronome.FPS, func(t time.Time) tea.Msg {
+	return tea.Tick(m.fps, func(t time.Time) tea.Msg {
 		return TickMsg{
 			Time: t,
 			ID:   id,
@@ -172,7 +165,7 @@ func (m Model) tick(id, tag int) tea.Cmd {
 	})
 }
 
-func (m *Model) updateInputs(msg tea.Msg) tea.Cmd {
+func (m *MetronomeModel) updateInputs(msg tea.Msg) tea.Cmd {
 	metrlog.Lg("model.updateInputs()")
 	var cmd tea.Cmd
 
@@ -182,18 +175,19 @@ func (m *Model) updateInputs(msg tea.Msg) tea.Cmd {
 	if err != nil {
 		return cmd
 	}
-	m.metronome.FPS = bpm2bps(bpmVal)
+	m.fps = bpm2bps(bpmVal)
 	cmd = m.tick(m.id, m.tag)
 
 	return cmd
 }
 
-func (m Model) View() string {
+func (m MetronomeModel) View() string {
 	metrlog.Lg("m.View()")
 	var b strings.Builder
 
 	b.WriteString(m.bpmInputStyle.Render(m.bpmInput.View()))
-	fmt.Fprintf(&b, "\n\n%s\n\n", m.metronomeFrameStyle.Render(m.metronome.Frames[m.frame]))
+	b.WriteString(fmt.Sprintf("\n\n%s\n\n", m.metronomeFrameStyle.Render(m.frames[m.frame])))
+	b.WriteString(fmt.Sprintf("\n\n%d\n\n", tickernum))
 
 	return b.String()
 }
@@ -205,8 +199,4 @@ func getBpmFromString(bpmInput string) (int, error) {
 		return 0, err
 	}
 	return intVar, nil
-}
-
-func getSongsFromXdgConfig() {
-	print("swag\n")
 }

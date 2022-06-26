@@ -135,7 +135,7 @@ func Test_Update(t *testing.T) {
 			},
 		}
 		for _, v := range tts {
-			m.frame = len(m.metronome.Frames)
+			m.frame = len(m.frames)
 			tm := TickMsg{
 				ID:  v.tickId,
 				tag: v.tag,
