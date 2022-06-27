@@ -83,7 +83,7 @@ func Test_initModel(t *testing.T) {
 func Test_View(t *testing.T) {
 	m := newModel()
 	view := m.View()
-	assert.Contains(t, view, getFrames(defaultMetronome.Frames)[0])
+	assert.Contains(t, view, getFrames(m.frames)[0])
 }
 
 func Test_Update(t *testing.T) {
@@ -154,8 +154,4 @@ func Test_ID(t *testing.T) {
 	m := newModel()
 	res := m.ID()
 	assert.Equal(t, lastID, res)
-}
-
-func Test_GetSongsFromXdgConfig(t *testing.T) {
-	getSongsFromXdgConfig()
 }

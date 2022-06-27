@@ -32,9 +32,27 @@ func Test_readSongsFromDir(t *testing.T) {
 	assertSongCheap(t, ccb, ccbt, []string{"G", "G", "G", "G"}, []string{"D", "D", "D", "D"})
 }
 
+func Test_getSongsXdg(t *testing.T) {
+	songs := GetSongsXdg()
+	require.Equal(t, 2, len(songs))
+
+}
+
 // assertSongCheap Assert some values, a for effort
 func assertSongCheap(t *testing.T, song Song, title string, sectionAbar1, sectionBbar1 []string) {
 	require.Equal(t, title, song.Title)
 	require.Equal(t, sectionAbar1, song.Sections.ASection[0])
 	require.Equal(t, sectionBbar1, song.Sections.BSection[0])
+}
+
+func BenchmarkReadSong(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		readSong("./../resources/LostHighway.yml")
+	}
+}
+
+func BenchmarkReadSongsFromDir(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		readSongsFromDir("./../resources")
+	}
 }

@@ -52,3 +52,11 @@ func readSongsFromDir(fpath string) []Song {
 func GetDefaultSongs() []Song {
 	return readSongsFromDir("./../resources")
 }
+
+func GetSongsXdg() []Song {
+	dirname, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+	return readSongsFromDir(filepath.Join(dirname, "/.config/metronome"))
+}

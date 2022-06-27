@@ -6,6 +6,6 @@ import (
 )
 
 func main() {
-	metrlog.ConfigureLog("metronome.log", false)
+	metrlog.ConfigureLog("metronome.log", true)
 	ui.StartUi()
 }
