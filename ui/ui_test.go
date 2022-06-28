@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_bpm2bps(t *testing.T) {
@@ -154,4 +155,13 @@ func Test_ID(t *testing.T) {
 	m := newModel()
 	res := m.ID()
 	assert.Equal(t, lastID, res)
+}
+
+func Test_manageMetronomeDisplay(t *testing.T) {
+	m := newModel()
+	require.Equal(t, "", m.metronomeDisplay)
+	m.frame = 1
+	go m.manageMetronomeDisplay()
+	time.Sleep(time.Second * 1)
+	require.Equal(t, "D", m.metronomeDisplay)
 }
