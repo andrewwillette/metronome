@@ -52,6 +52,13 @@ func readSongsFromDir(fpath string) []Song {
 func GetDefaultSongs() []Song {
 	return readSongsFromDir("./../resources")
 }
+func GetLostCowboySongs() []Song {
+	dirname, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+	return []Song{readSong(filepath.Join(dirname, "/.config/metronome/LostHighway.yml"))}
+}
 
 func GetSongsXdg() []Song {
 	dirname, err := os.UserHomeDir()

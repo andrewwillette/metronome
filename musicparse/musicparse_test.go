@@ -56,3 +56,14 @@ func BenchmarkReadSongsFromDir(b *testing.B) {
 		readSongsFromDir("./../resources")
 	}
 }
+
+func Test_GetLostCowboySongs(t *testing.T) {
+	songs := GetLostCowboySongs()
+	lhw := songs[0]
+	require.Equal(t, "Lost Highway", lhw.Title)
+	require.Equal(t, []string{"D", "D", "D", "D"}, lhw.Sections.ASection[0])
+	require.Equal(t, []string{"D", "D", "G", "G"}, lhw.Sections.ASection[1])
+	require.Equal(t, []string{"A", "A", "A", "A"}, lhw.Sections.ASection[6])
+	require.Equal(t, []string{"G", "G", "G", "G"}, lhw.Sections.BSection[1])
+	require.Equal(t, []string{"D", "D", "D", "D"}, lhw.Sections.BSection[7])
+}

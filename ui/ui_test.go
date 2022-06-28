@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/andrewwillette/metronome/musicparse"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
@@ -157,11 +158,24 @@ func Test_ID(t *testing.T) {
 	assert.Equal(t, lastID, res)
 }
 
+// Test_manageMetronomeDisplay test that when frame is set to 1 and
+// manageMetronomeDisplay is allowed to run for a second, the metronome
+// display bar 1, number 0
 func Test_manageMetronomeDisplay(t *testing.T) {
 	m := newModel()
+	m.songs = musicparse.GetLostCowboySongs()
 	require.Equal(t, "", m.metronomeDisplay)
 	m.frame = 1
 	go m.manageMetronomeDisplay()
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond * 100)
+	require.Equal(t, "D", m.metronomeDisplay)
+	m.frame = 7
+	time.Sleep(time.Millisecond * 100)
+	require.Equal(t, "G", m.metronomeDisplay)
+	time.Sleep(time.Millisecond * 100)
+	m.frame = 8
+	require.Equal(t, "G", m.metronomeDisplay)
+	time.Sleep(time.Millisecond * 100)
+	m.frame = 9
 	require.Equal(t, "D", m.metronomeDisplay)
 }
