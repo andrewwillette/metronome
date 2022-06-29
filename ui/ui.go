@@ -16,16 +16,20 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// https://hextobinary.com/unit/frequency/from/bpm/to/fps
+const bpmConversion float64 = .016666666666667
+
 var (
 	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	cursorStyle  = focusedStyle.Copy()
 	chordsPerBar = []string{"G", "G", "G", "G", "D", "D", "D", "D"}
+	lastID       int
+	idMtx        sync.Mutex
 )
 
 func StartUi() {
 	// songs := musicparse.GetDefaultSongs()
 	model := newModel()
-	go model.manageMetronomeDisplay()
 	if err := tea.NewProgram(model).Start(); err != nil {
 		metrlog.Lg(fmt.Sprintf("could not start program: %s\n", err))
 		os.Exit(1)
@@ -44,19 +48,17 @@ func getFrames(bars []string) []string {
 
 // bpm2bps get time.Duration of metronome tick for given BPM
 func bpm2bps(bpm int) time.Duration {
-	// https://hextobinary.com/unit/frequency/from/bpm/to/fps
-	const bpmConversion float64 = .016666666666667
 	return time.Duration(float64(time.Second) / (float64(bpm) * bpmConversion))
 }
 
 type BaseModel struct {
-	bpmUpdated          chan struct{}
 	metronomeDisplay    string
 	songs               []song.Song
+	activeSong          song.Song
 	bpmInputModel       textinput.Model
 	bpmInputStyle       lipgloss.Style
 	metronomeFrameStyle lipgloss.Style
-	frames              []string
+	songFrames          []string
 	fps                 time.Duration
 	frame               int
 	id                  int
@@ -85,22 +87,20 @@ func newModel() *BaseModel {
 	t.PromptStyle = focusedStyle
 	t.TextStyle = focusedStyle
 
+	songs := song.GetSongsXdg()
+	activeSong := songs[0]
+	songFrames := song.GetSongFrames(activeSong)
 	return &BaseModel{
-		songs:               song.GetSongsXdg(),
+		songs:               songs,
+		activeSong:          activeSong,
 		bpmInputModel:       t,
-		bpmUpdated:          make(chan struct{}),
-		frames:              getFrames(chordsPerBar),
+		songFrames:          songFrames,
 		fps:                 bpm2bps(1),
 		id:                  nextID(),
 		bpmInputStyle:       lipgloss.NewStyle().BorderStyle(lipgloss.DoubleBorder()),
 		metronomeFrameStyle: lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()),
 	}
 }
-
-var (
-	lastID int
-	idMtx  sync.Mutex
-)
 
 func nextID() int {
 	idMtx.Lock()
@@ -142,7 +142,7 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.frame++
-		if m.frame >= len(m.frames) {
+		if m.frame >= len(m.songFrames) {
 			m.frame = 0
 		}
 		m.tag++
@@ -169,19 +169,6 @@ func (m BaseModel) tick(id, tag int) tea.Cmd {
 	})
 }
 
-func getSongFrames(song song.Song) []string {
-	frames := []string{}
-	if len(song.Sections.ASection) > 0 {
-		section := song.Sections.ASection
-		for _, bar := range section {
-			for _, beat := range bar {
-				frames = append(frames, beat)
-			}
-		}
-	}
-	return frames
-}
-
 func (m *BaseModel) updateInputs(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 
@@ -191,74 +178,17 @@ func (m *BaseModel) updateInputs(msg tea.Msg) tea.Cmd {
 	if err != nil {
 		return cmd
 	}
-	// <-m.bpmUpdated
 	m.fps = bpm2bps(bpmVal)
 	cmd = m.tick(m.id, m.tag)
 
 	return cmd
 }
 
-func (m *BaseModel) viewMetronomeDisplay() string {
-	song := m.songs[0]
-	toReturn := song.Sections.ASection[0][0]
-	// for {
-	// 	// toReturn = song.Sections.ASection[i]
-	// 	i++
-	// 	if i == m.frame {
-	// 		break
-	// 	}
-	// }
-	// toDisplay = song
-	return toReturn
-}
-
-func getMaxLenOfSection(section [][]string) int {
-	i := 0
-	for _, v1 := range section {
-		for range v1 {
-			i++
-		}
-	}
-	return i
-}
-
-// manageMetronomeDisplay set UI display to appropriate string
-//
-func (baseModel *BaseModel) manageMetronomeDisplay() {
-	song := baseModel.songs[0]
-	maxLen := getMaxLenOfSection(song.Sections.ASection)
-	for {
-		select {
-		case <-baseModel.bpmUpdated:
-			metrlog.Lg("bpm updated caught in manageMetronomeDisplay")
-			// break
-		default:
-			toDisplayFrameIndex := baseModel.frame % maxLen
-			i := 0
-			for {
-				for _, bar := range song.Sections.ASection {
-					for _, beat := range bar {
-						if i == toDisplayFrameIndex {
-							metrlog.Lg("i == toDisplay")
-							metrlog.Lg(beat)
-							baseModel.metronomeDisplay = beat
-							i = i % maxLen
-						}
-						i++
-					}
-				}
-			}
-		}
-	}
-}
-
 func (m BaseModel) View() string {
 	var b strings.Builder
-
 	b.WriteString(m.bpmInputStyle.Render(m.bpmInputModel.View()))
-	// b.WriteString(fmt.Sprintf("\n\n%s\n\n", m.metronomeFrameStyle.Render(m.frames[m.frame])))
-	b.WriteString(fmt.Sprintf("\n\n%s\n\n", m.metronomeDisplay))
-
+	b.WriteString(fmt.Sprintf("\n%s\n", m.activeSong.Title))
+	b.WriteString(fmt.Sprintf("\n%s\n", m.metronomeFrameStyle.Render(m.songFrames[m.frame])))
 	return b.String()
 }
 

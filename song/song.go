@@ -89,7 +89,7 @@ func appendSectionFrames(section [][]string, frames []string) []string {
 	return frames
 }
 
-func getSongFrames(song Song) []string {
+func GetSongFrames(song Song) []string {
 	frames := []string{}
 	if len(song.Sections.ASection) > 0 {
 		frames = appendSectionFrames(song.Sections.ASection, frames)
@@ -102,6 +102,10 @@ func getSongFrames(song Song) []string {
 	}
 	return frames
 }
+
+// getSectionFrame return string representation of the song
+// when the given sectionIndex is active. It ends up being spaces
+// everywhere but the index value.
 func getSectionFrame(section [][]string, sectionIndex int) string {
 	var sb strings.Builder
 	i := 0
