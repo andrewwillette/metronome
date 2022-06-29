@@ -1,0 +1,17 @@
+song: Twelve Bar Blues
+sections:
+  a:
+    - [C,C,C,C]
+    - [C,C,C,C]
+    - [C,C,C,C]
+    - [C,C,C,C]
+  b:
+    - [F,F,F,F]
+    - [F,F,F,F]
+    - [C,C,C,C]
+    - [C,C,C,C]
+  c:
+    - [G,G,G,G]
+    - [F,F,F,F]
+    - [C,C,C,C]
+    - [C,C,C,C]

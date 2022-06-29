@@ -4,11 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/andrewwillette/metronome/musicparse"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_bpm2bps(t *testing.T) {
@@ -179,34 +177,4 @@ func Test_ID(t *testing.T) {
 
 func getLostCowboyExpectedFrames() []string {
 	return []string{}
-}
-
-func getExampleSongTwoBars() musicparse.Song {
-	// sections := musicparse.Song.Secgcctions
-	song := musicparse.Song{
-		Title: "Four Bar Blues",
-		Sections: musicparse.Sections{
-			ASection: [][]string{},
-		},
-	}
-	return song
-}
-func Test_getSongFrames(t *testing.T) {
-	lcp := musicparse.GetLostCowboySongs()
-	lcps := lcp[0]
-	tests := []struct {
-		song           musicparse.Song
-		expectedFrames []string
-	}{
-		{
-			song:           lcps,
-			expectedFrames: getLostCowboyExpectedFrames(),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.song.Title, func(t *testing.T) {
-			frames := getSongFrames(tt.song)
-			require.Equal(t, tt.expectedFrames, frames)
-		})
-	}
 }

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	metrlog "github.com/andrewwillette/metronome/log"
-	"github.com/andrewwillette/metronome/musicparse"
+	"github.com/andrewwillette/metronome/song"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -52,7 +52,7 @@ func bpm2bps(bpm int) time.Duration {
 type BaseModel struct {
 	bpmUpdated          chan struct{}
 	metronomeDisplay    string
-	songs               []musicparse.Song
+	songs               []song.Song
 	bpmInputModel       textinput.Model
 	bpmInputStyle       lipgloss.Style
 	metronomeFrameStyle lipgloss.Style
@@ -86,7 +86,7 @@ func newModel() *BaseModel {
 	t.TextStyle = focusedStyle
 
 	return &BaseModel{
-		songs:               musicparse.GetSongsXdg(),
+		songs:               song.GetSongsXdg(),
 		bpmInputModel:       t,
 		bpmUpdated:          make(chan struct{}),
 		frames:              getFrames(chordsPerBar),
@@ -169,8 +169,17 @@ func (m BaseModel) tick(id, tag int) tea.Cmd {
 	})
 }
 
-func getSongFrames(song musicparse.Song) []string {
-	return []string{}
+func getSongFrames(song song.Song) []string {
+	frames := []string{}
+	if len(song.Sections.ASection) > 0 {
+		section := song.Sections.ASection
+		for _, bar := range section {
+			for _, beat := range bar {
+				frames = append(frames, beat)
+			}
+		}
+	}
+	return frames
 }
 
 func (m *BaseModel) updateInputs(msg tea.Msg) tea.Cmd {

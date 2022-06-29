@@ -1,4 +1,4 @@
-package musicparse
+package song
 
 import (
 	"testing"
@@ -14,7 +14,7 @@ func Test_musicParse(t *testing.T) {
 
 func Test_readSongsFromDir(t *testing.T) {
 	songs := readSongsFromDir("./../resources")
-	require.Equal(t, 2, len(songs))
+	require.Equal(t, 3, len(songs))
 	getByTitle := func(ttle string, sngs []Song) Song {
 		for _, v := range sngs {
 			if v.Title == ttle {
@@ -35,7 +35,6 @@ func Test_readSongsFromDir(t *testing.T) {
 func Test_getSongsXdg(t *testing.T) {
 	songs := GetSongsXdg()
 	require.Equal(t, 2, len(songs))
-
 }
 
 // assertSongCheap Assert some values, a for effort
@@ -66,4 +65,24 @@ func Test_GetLostCowboySongs(t *testing.T) {
 	require.Equal(t, []string{"A", "A", "A", "A"}, lhw.Sections.ASection[6])
 	require.Equal(t, []string{"G", "G", "G", "G"}, lhw.Sections.BSection[1])
 	require.Equal(t, []string{"D", "D", "D", "D"}, lhw.Sections.BSection[7])
+}
+
+func Test_getSongFrames(t *testing.T) {
+	// lcp := musicparse.GetLostCowboySongs()
+	// lcps := lcp[0]
+	tests := []struct {
+		song           Song
+		expectedFrames []string
+	}{
+		{
+			song:           TwelveBarBlues,
+			expectedFrames: ExptectedTwelveBarBluesFrames(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.song.Title, func(t *testing.T) {
+			frames := getSongFrames(tt.song)
+			require.Equal(t, tt.expectedFrames, frames)
+		})
+	}
 }
