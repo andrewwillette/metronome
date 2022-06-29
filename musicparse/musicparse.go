@@ -9,13 +9,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type Sections struct {
+	ASection [][]string `yaml:"a,flow,omitempty"`
+	BSection [][]string `yaml:"b,flow,omitempty"`
+	CSection [][]string `yaml:"c,flow,omitempty"`
+}
+
 type Song struct {
 	Title    string `yaml:"song,omitempty"`
-	Sections struct {
-		ASection [][]string `yaml:"a,flow,omitempty"`
-		BSection [][]string `yaml:"b,flow,omitempty"`
-		CSection [][]string `yaml:"c,flow,omitempty"`
-	}
+	Sections Sections
 }
 
 func readSong(fpath string) Song {

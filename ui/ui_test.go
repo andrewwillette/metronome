@@ -82,11 +82,11 @@ func Test_initModel(t *testing.T) {
 	assert.IsType(t, TickMsg{}, res())
 }
 
-func Test_View(t *testing.T) {
-	m := newModel()
-	view := m.View()
-	assert.Contains(t, view, getFrames(m.frames)[0])
-}
+// func Test_View(t *testing.T) {
+// 	m := newModel()
+// 	view := m.View()
+// 	assert.Contains(t, view, getFrames(m.frames)[0])
+// }
 
 func Test_Update(t *testing.T) {
 	t.Run("Updating with KeyMsg", func(t *testing.T) {
@@ -158,24 +158,55 @@ func Test_ID(t *testing.T) {
 	assert.Equal(t, lastID, res)
 }
 
-// Test_manageMetronomeDisplay test that when frame is set to 1 and
-// manageMetronomeDisplay is allowed to run for a second, the metronome
-// display bar 1, number 0
-func Test_manageMetronomeDisplay(t *testing.T) {
-	m := newModel()
-	m.songs = musicparse.GetLostCowboySongs()
-	require.Equal(t, "", m.metronomeDisplay)
-	m.frame = 1
-	go m.manageMetronomeDisplay()
-	time.Sleep(time.Millisecond * 100)
-	require.Equal(t, "D", m.metronomeDisplay)
-	m.frame = 7
-	time.Sleep(time.Millisecond * 100)
-	require.Equal(t, "G", m.metronomeDisplay)
-	time.Sleep(time.Millisecond * 100)
-	m.frame = 8
-	require.Equal(t, "G", m.metronomeDisplay)
-	time.Sleep(time.Millisecond * 100)
-	m.frame = 9
-	require.Equal(t, "D", m.metronomeDisplay)
+// func Test_manageMetronomeDisplay(t *testing.T) {
+// 	m := newModel()
+// 	m.songs = musicparse.GetLostCowboySongs()
+// 	require.Equal(t, "", m.metronomeDisplay)
+// 	m.frame = 1
+// 	go m.manageMetronomeDisplay()
+// 	time.Sleep(time.Millisecond * 100)
+// 	require.Equal(t, "D", m.metronomeDisplay)
+// 	m.frame = 7
+// 	time.Sleep(time.Millisecond * 100)
+// 	require.Equal(t, "G", m.metronomeDisplay)
+// 	time.Sleep(time.Millisecond * 100)
+// 	m.frame = 8
+// 	require.Equal(t, "G", m.metronomeDisplay)
+// 	time.Sleep(time.Millisecond * 100)
+// 	m.frame = 9
+// 	require.Equal(t, "D", m.metronomeDisplay)
+// }
+
+func getLostCowboyExpectedFrames() []string {
+	return []string{}
+}
+
+func getExampleSongTwoBars() musicparse.Song {
+	// sections := musicparse.Song.Secgcctions
+	song := musicparse.Song{
+		Title: "Four Bar Blues",
+		Sections: musicparse.Sections{
+			ASection: [][]string{},
+		},
+	}
+	return song
+}
+func Test_getSongFrames(t *testing.T) {
+	lcp := musicparse.GetLostCowboySongs()
+	lcps := lcp[0]
+	tests := []struct {
+		song           musicparse.Song
+		expectedFrames []string
+	}{
+		{
+			song:           lcps,
+			expectedFrames: getLostCowboyExpectedFrames(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.song.Title, func(t *testing.T) {
+			frames := getSongFrames(tt.song)
+			require.Equal(t, tt.expectedFrames, frames)
+		})
+	}
 }

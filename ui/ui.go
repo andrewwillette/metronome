@@ -23,7 +23,9 @@ var (
 )
 
 func StartUi() {
+	// songs := musicparse.GetDefaultSongs()
 	model := newModel()
+	go model.manageMetronomeDisplay()
 	if err := tea.NewProgram(model).Start(); err != nil {
 		metrlog.Lg(fmt.Sprintf("could not start program: %s\n", err))
 		os.Exit(1)
@@ -108,7 +110,6 @@ func nextID() int {
 }
 
 func (m BaseModel) Init() tea.Cmd {
-	go m.manageMetronomeDisplay()
 	return m.Tick
 }
 
@@ -128,7 +129,7 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd := m.bpmInputModel.SetCursorMode(m.cursorMode)
 			return m, cmd
 		default:
-			m.bpmUpdated <- struct{}{}
+			// m.bpmUpdated <- struct{}{}
 			cmd := m.updateInputs(msg)
 			return m, cmd
 		}
@@ -168,6 +169,10 @@ func (m BaseModel) tick(id, tag int) tea.Cmd {
 	})
 }
 
+func getSongFrames(song musicparse.Song) []string {
+	return []string{}
+}
+
 func (m *BaseModel) updateInputs(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 
@@ -177,6 +182,7 @@ func (m *BaseModel) updateInputs(msg tea.Msg) tea.Cmd {
 	if err != nil {
 		return cmd
 	}
+	// <-m.bpmUpdated
 	m.fps = bpm2bps(bpmVal)
 	cmd = m.tick(m.id, m.tag)
 
@@ -220,19 +226,19 @@ func (baseModel *BaseModel) manageMetronomeDisplay() {
 		default:
 			toDisplayFrameIndex := baseModel.frame % maxLen
 			i := 0
-			for _, bar := range song.Sections.ASection {
-				metrlog.Lg(fmt.Sprintf("bar is %+v\n", bar))
-				for _, beat := range bar {
-					// metrlog.Lg(beat)
-					if i == toDisplayFrameIndex {
-						// metrlog.Lg(fmt.Sprintf("Setting mode metr display to %s\n", beat))
-						baseModel.metronomeDisplay = beat
-						i = i % maxLen
+			for {
+				for _, bar := range song.Sections.ASection {
+					for _, beat := range bar {
+						if i == toDisplayFrameIndex {
+							metrlog.Lg("i == toDisplay")
+							metrlog.Lg(beat)
+							baseModel.metronomeDisplay = beat
+							i = i % maxLen
+						}
+						i++
 					}
-					i++
 				}
 			}
-			// }
 		}
 	}
 }
