@@ -99,7 +99,13 @@ func nextID() int {
 }
 
 func (m BaseModel) Init() tea.Cmd {
-	return m.Tick
+	return func() tea.Msg {
+		return TickMsg{
+			Time: time.Now(),
+			ID:   m.id,
+			tag:  m.tag,
+		}
+	}
 }
 
 func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -137,17 +143,9 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m BaseModel) Tick() tea.Msg {
-	return TickMsg{
-		Time: time.Now(),
-		ID:   m.id,
-		tag:  m.tag,
-	}
-}
-
 // tick calls 'tea.Tick(d time.Duration, fn func(time.Time) Msg) Cmd' which
 // returns a tea.Msg suitable for triggering the model.Update method at every
-// duration.
+// duration
 func (m BaseModel) tick(id, tag int) tea.Cmd {
 	return tea.Tick(m.fps, func(t time.Time) tea.Msg {
 		return TickMsg{
