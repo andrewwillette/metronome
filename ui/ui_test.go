@@ -33,21 +33,6 @@ func Test_bpm2bps(t *testing.T) {
 	}
 }
 
-func Test_getFrames(t *testing.T) {
-	tts := []struct {
-		provided, expected []string
-	}{
-		{
-			provided: []string{"G", "B"},
-			expected: []string{"G", " B"},
-		},
-	}
-	for _, v := range tts {
-		frames := getFrames(v.provided)
-		assert.Equal(t, frames, v.expected)
-	}
-}
-
 func Test_getBpmFromString(t *testing.T) {
 	tts := []struct {
 		provided  string
@@ -135,7 +120,7 @@ func Test_Update(t *testing.T) {
 			},
 		}
 		for _, v := range tts {
-			m.frame = len(m.frames)
+			m.frame = len(m.songFrames)
 			tm := TickMsg{
 				ID:  v.tickId,
 				tag: v.tag,

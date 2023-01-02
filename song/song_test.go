@@ -81,7 +81,7 @@ func Test_getSongFrames(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.song.Title, func(t *testing.T) {
-			frames := getSongFrames(tt.song)
+			frames := GetSongFrames(tt.song)
 			require.Equal(t, tt.expectedFrames, frames)
 		})
 	}

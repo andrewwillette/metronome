@@ -16,9 +16,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// https://hextobinary.com/unit/frequency/from/bpm/to/fps
-const bpmConversion float64 = .016666666666667
-
 var (
 	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	cursorStyle  = focusedStyle.Copy()
@@ -27,8 +24,8 @@ var (
 	idMtx        sync.Mutex
 )
 
+// StartUi start the metronome UI
 func StartUi() {
-	// songs := musicparse.GetDefaultSongs()
 	model := newModel()
 	if err := tea.NewProgram(model).Start(); err != nil {
 		metrlog.Lg(fmt.Sprintf("could not start program: %s\n", err))
@@ -36,18 +33,10 @@ func StartUi() {
 	}
 }
 
-func getFrames(bars []string) []string {
-	toReturn := []string{}
-	space := ""
-	for _, v := range bars {
-		toReturn = append(toReturn, space+v)
-		space = " " + space
-	}
-	return toReturn
-}
-
 // bpm2bps get time.Duration of metronome tick for given BPM
 func bpm2bps(bpm int) time.Duration {
+	// https://hextobinary.com/unit/frequency/from/bpm/to/fps
+	const bpmConversion float64 = .016666666666667
 	return time.Duration(float64(time.Second) / (float64(bpm) * bpmConversion))
 }
 
@@ -113,8 +102,6 @@ func (m BaseModel) Init() tea.Cmd {
 	return m.Tick
 }
 
-// var tickernum = 0
-
 func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -129,7 +116,6 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd := m.bpmInputModel.SetCursorMode(m.cursorMode)
 			return m, cmd
 		default:
-			// m.bpmUpdated <- struct{}{}
 			cmd := m.updateInputs(msg)
 			return m, cmd
 		}
@@ -159,6 +145,9 @@ func (m BaseModel) Tick() tea.Msg {
 	}
 }
 
+// tick calls 'tea.Tick(d time.Duration, fn func(time.Time) Msg) Cmd' which
+// returns a tea.Msg suitable for triggering the model.Update method at every
+// duration.
 func (m BaseModel) tick(id, tag int) tea.Cmd {
 	return tea.Tick(m.fps, func(t time.Time) tea.Msg {
 		return TickMsg{
