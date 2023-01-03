@@ -4,7 +4,7 @@ A TUI metronome with support for iterating over declared chord patterns.
 # Installation
 * Execute `git clone git@github.com:andrewwillette/metronome.git`.
 * Ensure the `go` executable exists on your `$PATH`.
-* A yml file is [configured]()
+* A yml file is [configured](#song-display-configuration)
 * Execute `go run .`.
 
 # Song Display Configuration
