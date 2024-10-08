@@ -134,7 +134,7 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.frame++
-		fmt.Print("\a")
+		playmetronomesound()
 		if m.frame >= len(m.songFrames) {
 			m.frame = 0
 		}
@@ -187,4 +187,8 @@ func getBpmFromString(bpmInput string) (int, error) {
 		return 0, err
 	}
 	return intVar, nil
+}
+
+func playmetronomesound() {
+	fmt.Print("\a")
 }
