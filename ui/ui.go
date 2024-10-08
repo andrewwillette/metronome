@@ -134,6 +134,7 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.frame++
+		fmt.Print("\a")
 		if m.frame >= len(m.songFrames) {
 			m.frame = 0
 		}
